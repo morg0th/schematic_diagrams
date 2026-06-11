@@ -1,6 +1,8 @@
+![Project](https://img.shields.io/badge/project-schematic_diagrams-blue)
 ![Status](https://img.shields.io/badge/status-active-success)
-![License](https://img.shields.io/badge/license-educational-blue)
-![HTML](https://img.shields.io/badge/HTML5-SVG-orange)
+![Category](https://img.shields.io/badge/category-radio_engineering-orange)
+![Technology](https://img.shields.io/badge/technology-HTML5%20%7C%20SVG%20%7C%20JS-red)
+![Purpose](https://img.shields.io/badge/purpose-education-green)
 
 # Schematic Diagrams
 
