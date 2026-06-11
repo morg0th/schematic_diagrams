@@ -1,12 +1,14 @@
+# Schematic Diagrams
+
+A collection of interactive and educational schematic diagrams covering radio engineering, electronics, telecommunications, and related technical topics.
+
 ![Project](https://img.shields.io/badge/project-schematic_diagrams-blue)
 ![Status](https://img.shields.io/badge/status-active-success)
 ![Category](https://img.shields.io/badge/category-radio_engineering-orange)
 ![Technology](https://img.shields.io/badge/technology-HTML5%20%7C%20SVG%20%7C%20JS-red)
-![Purpose](https://img.shields.io/badge/purpose-education-green)
+![Last Commit](https://img.shields.io/github/last-commit/morg0th/schematic_diagrams)
 
-# Schematic Diagrams
-
-A collection of interactive and educational schematic diagrams covering radio engineering, electronics, telecommunications, and related technical topics.
+Interactive and educational schematic diagrams for radio engineering, electronics and telecommunications.
 
 ## About
 
