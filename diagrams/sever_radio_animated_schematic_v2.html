@@ -1,1 +1,620 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Радиостанция «Север» — анимированная учебная схема v2</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --bg2:#111a30;
+    --panel:#101827;
+    --panel2:#172036;
+    --ink:#e5e7eb;
+    --muted:#9ca3af;
+    --line:#94a3b8;
+    --rx:#38bdf8;
+    --tx:#f97316;
+    --power:#22c55e;
+    --hot:#facc15;
+    --accent:#c084fc;
+    --warn:#fb7185;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    color:var(--ink);
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:radial-gradient(circle at top left,#1e3a8a 0,var(--bg) 32%,#030712 100%);
+  }
+  header{padding:24px clamp(16px,3vw,32px) 10px}
+  h1{margin:0 0 8px;font-size:clamp(26px,4vw,42px)}
+  header p{margin:8px 0;max-width:1200px;color:#cbd5e1;line-height:1.58}
+  .wrap{display:grid;grid-template-columns:minmax(320px,1fr) 380px;gap:16px;padding:10px clamp(12px,2vw,28px) 28px}
+  .card{background:rgba(10,16,32,.9);border:1px solid rgba(148,163,184,.18);border-radius:20px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+  .toolbar,.tabs{display:flex;gap:10px;flex-wrap:wrap;padding:14px;background:rgba(30,41,59,.6);border-bottom:1px solid rgba(148,163,184,.15)}
+  .tabs{padding-top:10px}
+  button{border:1px solid rgba(148,163,184,.35);background:#0a1120;color:var(--ink);padding:10px 14px;border-radius:999px;cursor:pointer;font-weight:700;transition:.18s transform,.18s border-color,.18s background;user-select:none}
+  button:hover{transform:translateY(-1px);border-color:#e2e8f0}
+  button.active.rx{background:rgba(56,189,248,.16);border-color:var(--rx);box-shadow:0 0 0 2px rgba(56,189,248,.08) inset}
+  button.active.tx{background:rgba(249,115,22,.16);border-color:var(--tx);box-shadow:0 0 0 2px rgba(249,115,22,.08) inset}
+  button.active.power{background:rgba(34,197,94,.16);border-color:var(--power);box-shadow:0 0 0 2px rgba(34,197,94,.08) inset}
+  button.active.overview{background:rgba(192,132,252,.16);border-color:var(--accent);box-shadow:0 0 0 2px rgba(192,132,252,.08) inset}
+  button.keyActive{background:rgba(250,204,21,.18);border-color:var(--hot)}
+  .legend{margin-left:auto;display:flex;gap:12px;align-items:center;color:var(--muted);font-size:14px;flex-wrap:wrap}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+  .dot.rx{background:var(--rx)} .dot.tx{background:var(--tx)} .dot.power{background:var(--power)} .dot.step{background:var(--accent)}
+  svg{width:100%;height:auto;display:block;background:linear-gradient(180deg,rgba(15,23,42,.55),rgba(2,6,23,.75));}
+  text{fill:var(--ink);font-family:inherit}
+  .caption{font-size:14px;fill:#cbd5e1}.small{font-size:13px;fill:var(--muted)}.tiny{font-size:11px;fill:#9fb0c8}.label{font-size:17px;font-weight:800}
+  .wire{stroke:var(--line);stroke-width:4;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.72}
+  .wire.thin{stroke-width:2}
+  .wire.off{opacity:.18;filter:grayscale(1)}
+  .rxPath{stroke:var(--rx);opacity:0}
+  .txPath{stroke:var(--tx);opacity:0}
+  .powerPath{stroke:var(--power);opacity:.24;stroke-dasharray:10 8;animation:dashPower 2.4s linear infinite}
+  body.mode-rx .rxPath{opacity:1;stroke-dasharray:12 12;animation:dash 1.45s linear infinite;filter:drop-shadow(0 0 6px rgba(56,189,248,.8))}
+  body.mode-tx .txPath{opacity:1;stroke-dasharray:12 12;animation:dash .85s linear infinite;filter:drop-shadow(0 0 7px rgba(249,115,22,.85))}
+  body.mode-tx.key-down .txKeyed{opacity:1;animation:dash .55s linear infinite,glowTx .8s ease-in-out infinite alternate}
+  body.mode-tx:not(.key-down) .txKeyed{opacity:.28;stroke-dasharray:3 14;animation:none}
+  @keyframes dash{to{stroke-dashoffset:-48}}
+  @keyframes dashPower{to{stroke-dashoffset:-36}}
+  @keyframes glowTx{from{filter:drop-shadow(0 0 2px rgba(249,115,22,.5))}to{filter:drop-shadow(0 0 10px rgba(249,115,22,.95))}}
+  .node rect,.node circle,.node ellipse{fill:rgba(30,58,138,.7);stroke:#93c5fd;stroke-width:2}
+  .node.inactive rect,.node.inactive circle,.node.inactive ellipse{opacity:.5}
+  body.mode-rx .rxNode rect,body.mode-rx .rxNode circle,body.mode-rx .rxNode ellipse{stroke:var(--rx);filter:drop-shadow(0 0 9px rgba(56,189,248,.65))}
+  body.mode-tx .txNode rect,body.mode-tx .txNode circle,body.mode-tx .txNode ellipse{stroke:var(--tx);filter:drop-shadow(0 0 9px rgba(249,115,22,.65))}
+  body.mode-tx .rxOnly{opacity:.38;filter:grayscale(1)}
+  body.mode-rx .txOnly{opacity:.38;filter:grayscale(1)}
+  .tube{fill:rgba(15,23,42,.2);stroke:#cbd5e1;stroke-width:1.5}
+  .filament{stroke:var(--hot);stroke-width:2;fill:none;opacity:.75;animation:pulseFil 1.7s ease-in-out infinite}
+  .grid{stroke:#cbd5e1;stroke-width:1.5}.plate{stroke:#cbd5e1;stroke-width:2}
+  @keyframes pulseFil{50%{opacity:1;filter:drop-shadow(0 0 8px rgba(250,204,21,.9))}}
+  .hotspot{cursor:pointer}
+  .hotspot .halo{fill:transparent;stroke:rgba(250,204,21,0);stroke-width:3;transition:.2s}
+  .hotspot:hover .halo{stroke:rgba(250,204,21,.8);filter:drop-shadow(0 0 8px rgba(250,204,21,.8))}
+  .step-focus rect,.step-focus circle,.step-focus ellipse{stroke:#fde68a !important;stroke-width:3 !important;filter:drop-shadow(0 0 12px rgba(250,204,21,.95)) !important}
+  .step-path{opacity:.15 !important;animation:none !important;filter:none !important}
+  .step-path.step-focus{opacity:1 !important;stroke-dasharray:12 10 !important;animation:dash .8s linear infinite !important;filter:drop-shadow(0 0 10px rgba(250,204,21,.95)) !important;stroke:#fde68a !important}
+  .tooltip{position:fixed;z-index:20;max-width:330px;padding:12px 14px;background:#020617;border:1px solid rgba(250,204,21,.6);border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.5);display:none;color:var(--ink);font-size:14px;line-height:1.45}
+  .tooltip b{color:#fde68a}
+  aside{padding:18px;display:flex;flex-direction:column;gap:14px}
+  .panel{background:rgba(23,32,54,.66);border:1px solid rgba(148,163,184,.14);border-radius:16px;padding:14px}
+  .panel h2{font-size:18px;margin:0 0 10px}
+  .panel p,.panel li{color:#cbd5e1;line-height:1.55;font-size:14.5px}
+  .panel ul{padding-left:20px;margin:8px 0}
+  .status{font-weight:800}.status.rx{color:var(--rx)}.status.tx{color:var(--tx)}
+  .meter{height:12px;background:#020617;border-radius:999px;overflow:hidden;border:1px solid rgba(148,163,184,.25)}
+  .bar{height:100%;width:15%;background:linear-gradient(90deg,var(--hot),var(--tx));border-radius:999px;transition:width .18s}
+  .morse{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#fde68a;word-break:break-all}
+  .note{font-size:12.5px!important;color:#94a3b8!important}
+  .step-controls{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px}
+  .step-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}
+  .step-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(192,132,252,.12);border:1px solid rgba(192,132,252,.35);font-size:13px;font-weight:700}
+  .progress{height:8px;background:#020617;border-radius:999px;overflow:hidden;border:1px solid rgba(148,163,184,.18)}
+  .progress span{display:block;height:100%;width:20%;background:linear-gradient(90deg,var(--accent),#fde68a);transition:width .25s}
+  .ref-item{padding:10px 0;border-top:1px solid rgba(148,163,184,.12)}
+  .ref-item:first-child{border-top:none;padding-top:0}
+  .ref-item b{display:block;color:#fde68a;margin-bottom:4px}
+  .footer{padding:12px 18px 18px;color:#94a3b8;font-size:13px;line-height:1.5}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#111827;border:1px solid #374151;border-radius:6px;padding:1px 6px}
+  @media(max-width:980px){.wrap{grid-template-columns:1fr}.legend{margin-left:0}.tooltip{left:12px!important;right:12px!important;top:auto!important;bottom:12px!important;max-width:none}}
+</style>
+</head>
+<body class="mode-rx">
+<header>
+  <h1>Радиостанция «Север»: учебная анимированная схема</h1>
+  <p>Ниже — крупная интерактивная схема с режимами <b>«Приём»</b> и <b>«Передача»</b>, вкладками по темам, пошаговой анимацией прохождения сигнала и мини‑справкой по лампам и органам управления. Это <b>учебная, условно‑принципиальная модель</b>, а не чертёж для сборки или настройки передатчика.</p>
+</header>
+<div class="wrap">
+  <main class="card">
+    <div class="toolbar">
+      <button id="rxBtn" class="active rx">Приём</button>
+      <button id="txBtn" class="tx">Передача</button>
+      <button id="keyBtn">Нажать ключ</button>
+      <button id="autoBtn">Авто‑CQ</button>
+      <div class="legend"><span><i class="dot rx"></i>приём</span><span><i class="dot tx"></i>передача</span><span><i class="dot power"></i>питание</span><span><i class="dot step"></i>активный шаг</span></div>
+    </div>
+    <div class="tabs">
+      <button id="tabOverview" class="active overview">Общий принцип</button>
+      <button id="tabRx" class="rx">Приём</button>
+      <button id="tabTx" class="tx">Передача</button>
+      <button id="tabPower" class="power">Питание</button>
+    </div>
+    <svg viewBox="0 0 1180 720" role="img" aria-label="Анимированная учебная схема радиостанции Север">
+      <defs>
+        <marker id="arrowRx" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#38bdf8"/></marker>
+        <marker id="arrowTx" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#f97316"/></marker>
+      </defs>
+      <rect x="16" y="18" width="1148" height="684" rx="24" fill="rgba(2,6,23,.35)" stroke="rgba(148,163,184,.22)"/>
+      <text x="44" y="58" class="caption">Условно‑принципиальная схема: показывает логику узлов станции «Север»</text>
 
+      <g id="node-antenna" class="hotspot node rxNode txNode" data-title="Антенна и противовес" data-info="На приёме антенна принимает слабое ВЧ‑напряжение из эфира. На передаче в антенну через антенный контур поступает усиленная ВЧ‑энергия. Противовес замыкает антенный тракт.">
+        <path class="wire" d="M112 144 L72 264 M112 144 L178 264 M112 144 L112 72"/>
+        <path class="wire thin" d="M68 302 C110 278 160 278 204 302"/>
+        <circle class="halo" cx="112" cy="164" r="70"/>
+        <text x="42" y="330" class="label">Антенна</text>
+        <text x="42" y="350" class="small">наклонный луч / противовес</text>
+      </g>
+
+      <g id="node-switch" class="hotspot node rxNode txNode" data-title="Переключатель RX/TX" data-info="Переключатель меняет маршрутизацию общих узлов. Благодаря ему часть ламп и цепей используется и в приёмнике, и в передатчике — это и есть трансиверный принцип.">
+        <rect x="250" y="118" width="150" height="86" rx="14"/>
+        <line x1="278" y1="168" x2="336" y2="142" class="wire thin"/>
+        <circle cx="276" cy="168" r="6" fill="#e5e7eb"/><circle cx="346" cy="138" r="6" fill="#e5e7eb"/><circle cx="346" cy="192" r="6" fill="#e5e7eb"/>
+        <circle class="halo" cx="325" cy="161" r="72"/>
+        <text x="272" y="105" class="label">RX/TX</text>
+        <text x="260" y="232" class="small">переключатель</text>
+      </g>
+
+      <path id="rxSeg1" class="wire rxPath step-path" marker-end="url(#arrowRx)" d="M180 164 C220 164 228 162 250 162"/>
+      <path id="rxSeg2" class="wire rxPath step-path" marker-end="url(#arrowRx)" d="M400 162 C434 162 444 162 482 162"/>
+      <path id="rxSeg3" class="wire rxPath step-path" marker-end="url(#arrowRx)" d="M630 162 C662 162 676 162 714 162"/>
+      <path id="rxSeg4" class="wire rxPath step-path" marker-end="url(#arrowRx)" d="M862 162 C900 162 910 198 934 250"/>
+      <path id="rxSeg5" class="wire rxPath step-path" marker-end="url(#arrowRx)" d="M990 330 C990 390 940 420 890 462"/>
+
+      <path id="txSeg1" class="wire txPath txKeyed step-path" marker-end="url(#arrowTx)" d="M308 500 C308 446 356 422 456 402"/>
+      <path id="txSeg2" class="wire txPath txKeyed step-path" marker-end="url(#arrowTx)" d="M610 402 C660 402 682 402 724 402"/>
+      <path id="txSeg3" class="wire txPath txKeyed step-path" marker-end="url(#arrowTx)" d="M868 402 C930 402 952 336 972 292"/>
+      <path id="txSeg4" class="wire txPath txKeyed step-path" marker-end="url(#arrowTx)" d="M972 292 C890 210 690 128 402 162"/>
+      <path id="txSeg5" class="wire txPath txKeyed step-path" marker-end="url(#arrowTx)" d="M250 162 C214 162 188 162 150 164"/>
+
+      <g id="node-v1" class="hotspot node rxNode txNode" data-title="Лампа V1: 2К2М" data-info="На приёме — входной ВЧ‑усилитель: поднимает уровень принятого сигнала. На передаче — задающий генератор: формирует несущую частоту станции.">
+        <rect x="482" y="92" width="148" height="144" rx="18"/>
+        <ellipse class="tube" cx="556" cy="152" rx="38" ry="54"/>
+        <path class="filament" d="M536 190 q20 -22 40 0"/>
+        <path class="grid" d="M534 143 h44 M534 151 h44 M534 159 h44"/>
+        <path class="plate" d="M556 105 v28"/>
+        <path class="wire thin" d="M500 218 q56 -30 112 0"/>
+        <circle class="halo" cx="556" cy="164" r="82"/>
+        <text x="512" y="78" class="label">V1 2К2М</text>
+        <text x="496" y="256" class="small">ВЧ усилитель / задающий генератор</text>
+      </g>
+
+      <g id="node-v2" class="hotspot node rxNode rxOnly" data-title="Лампа V2: регенеративный детектор" data-info="Узел выделяет полезный сигнал и за счёт положительной обратной связи резко повышает чувствительность. При слишком сильной обратной связи детектор может сорваться в генерацию.">
+        <rect x="714" y="92" width="148" height="144" rx="18"/>
+        <ellipse class="tube" cx="788" cy="152" rx="38" ry="54"/>
+        <path class="filament" d="M768 190 q20 -22 40 0"/>
+        <path class="grid" d="M766 143 h44 M766 151 h44 M766 159 h44"/>
+        <path class="plate" d="M788 105 v28"/>
+        <path class="wire thin" d="M742 214 C786 250 846 228 846 174 C846 128 806 116 784 132"/>
+        <text x="817" y="126" class="tiny">обратная связь</text>
+        <circle class="halo" cx="788" cy="164" r="82"/>
+        <text x="744" y="78" class="label">V2 2К2М</text>
+        <text x="728" y="256" class="small">детектор‑регенератор</text>
+      </g>
+
+      <g id="node-v3" class="hotspot node rxNode txNode" data-title="Лампа V3: №24 / СБ‑244" data-info="На приёме — усилитель низкой частоты для телефонов. На передаче — усилитель мощности, подающий ВЧ‑энергию в антенный контур.">
+        <rect x="724" y="334" width="144" height="136" rx="18"/>
+        <ellipse class="tube" cx="796" cy="396" rx="37" ry="50"/>
+        <path class="filament" d="M776 430 q20 -22 40 0"/>
+        <path class="grid" d="M774 388 h44 M774 396 h44 M774 404 h44"/>
+        <path class="plate" d="M796 352 v28"/>
+        <circle class="halo" cx="796" cy="402" r="80"/>
+        <text x="746" y="318" class="label">V3 №24</text>
+        <text x="736" y="490" class="small">НЧ усилитель / усилитель мощности</text>
+      </g>
+
+      <g id="node-headphones" class="hotspot node rxNode rxOnly" data-title="Телефоны" data-info="Здесь оператор слышит телеграфный сигнал. Настройка ведётся по максимальной разборчивости и устойчивости тона.">
+        <path class="wire" d="M935 250 C930 210 954 190 990 190 C1024 190 1048 212 1048 250"/>
+        <rect x="936" y="248" width="40" height="86" rx="16"/><rect x="1008" y="248" width="40" height="86" rx="16"/>
+        <circle class="halo" cx="992" cy="260" r="72"/>
+        <text x="940" y="365" class="label">Телефоны</text>
+        <text x="920" y="385" class="small">выход приёмника</text>
+      </g>
+
+      <g id="node-key" class="hotspot node txNode txOnly" data-title="Телеграфный ключ" data-info="Ключ включает и выключает несущую — так формируются точки и тире азбуки Морзе. Физически это телеграфная манипуляция передатчика.">
+        <rect x="224" y="500" width="168" height="82" rx="14"/>
+        <line x1="252" y1="546" x2="342" y2="522" class="wire thin"/>
+        <circle cx="250" cy="546" r="7" fill="#e5e7eb"/><circle cx="352" cy="520" r="7" fill="#e5e7eb"/>
+        <circle class="halo" cx="308" cy="540" r="76"/>
+        <text x="250" y="490" class="label">Ключ</text>
+        <text x="245" y="608" class="small">манипуляция CW</text>
+      </g>
+
+      <g id="node-lc" class="hotspot node txNode txOnly" data-title="Контур генератора / кварц" data-info="Этот блок задаёт рабочую частоту передатчика. В реальных исполнениях станция могла работать с LC‑контуром и/или кварцевой стабилизацией.">
+        <rect x="456" y="342" width="154" height="120" rx="18"/>
+        <path d="M484 402 q10 -28 20 0 t20 0 t20 0 t20 0" class="wire thin"/>
+        <path d="M496 370 v58 M570 370 v58" stroke="#cbd5e1" stroke-width="3"/>
+        <rect x="500" y="366" width="66" height="66" rx="8" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5 4"/>
+        <circle class="halo" cx="532" cy="402" r="75"/>
+        <text x="474" y="328" class="label">LC / quartz</text>
+        <text x="466" y="482" class="small">частота передатчика</text>
+      </g>
+
+      <g id="node-ant-tune" class="hotspot node txNode txOnly" data-title="Антенный контур" data-info="Согласует усилитель мощности и антенну. При хорошем согласовании энергия лучше уходит в эфир, а не рассеивается внутри станции.">
+        <rect x="944" y="206" width="146" height="86" rx="16"/>
+        <path d="M966 252 q8 -20 16 0 t16 0 t16 0 t16 0" class="wire thin"/>
+        <path d="M1054 222 v52 M1070 222 v52" stroke="#cbd5e1" stroke-width="3"/>
+        <circle class="halo" cx="1018" cy="250" r="72"/>
+        <text x="962" y="194" class="label">Ант. контур</text>
+        <text x="952" y="316" class="small">согласование</text>
+      </g>
+
+      <g id="node-power" class="hotspot node rxNode txNode" data-title="Батарейное питание" data-info="Станция питается от батарей накала и анодной батареи. Накал разогревает катоды ламп, анодное питание создаёт условия для усиления и генерации.">
+        <rect x="454" y="560" width="320" height="80" rx="16"/>
+        <line x1="490" y1="588" x2="490" y2="626" stroke="#cbd5e1" stroke-width="4"/><line x1="505" y1="598" x2="505" y2="616" stroke="#cbd5e1" stroke-width="3"/>
+        <line x1="545" y1="588" x2="545" y2="626" stroke="#cbd5e1" stroke-width="4"/><line x1="560" y1="598" x2="560" y2="616" stroke="#cbd5e1" stroke-width="3"/>
+        <line x1="600" y1="588" x2="600" y2="626" stroke="#cbd5e1" stroke-width="4"/><line x1="615" y1="598" x2="615" y2="616" stroke="#cbd5e1" stroke-width="3"/>
+        <circle class="halo" cx="614" cy="600" r="100"/>
+        <text x="638" y="594" class="label">Батареи</text>
+        <text x="638" y="616" class="small">накал + анод</text>
+      </g>
+      <path id="pwrSeg1" class="wire powerPath step-path" d="M615 560 C592 486 572 350 556 236"/>
+      <path id="pwrSeg2" class="wire powerPath step-path" d="M625 560 C666 450 726 300 788 236"/>
+      <path id="pwrSeg3" class="wire powerPath step-path" d="M660 560 C710 510 760 492 796 470"/>
+
+      <g id="node-ground" class="hotspot node rxNode txNode" data-title="Земля / противовес" data-info="Противовес образует вторую часть антенной системы. Без него связь и настройка у переносной КВ‑станции могут заметно ухудшиться.">
+        <path class="wire" d="M146 418 v44 M116 462 h60 M124 478 h44 M134 494 h24"/>
+        <text x="48" y="425" class="label">GND</text>
+        <circle class="halo" cx="146" cy="462" r="58"/>
+      </g>
+
+      <text x="76" y="650" class="caption">RX: антенна → переключатель → V1 → V2 → телефоны / V3</text>
+      <text x="76" y="675" class="caption">TX: ключ → контур частоты → V1 → V3 → антенный контур → антенна</text>
+    </svg>
+    <div class="footer">Подсказка: переключай вкладки и нажимай <span class="kbd">Следующий шаг</span>, чтобы увидеть пошаговую работу схемы. Для телеграфной манипуляции можно использовать кнопку <span class="kbd">Нажать ключ</span> или клавишу <span class="kbd">Пробел</span>.</div>
+  </main>
+
+  <aside class="card">
+    <div class="panel">
+      <h2>Сейчас: <span id="status" class="status rx">режим приёма</span></h2>
+      <p id="modeText">Слабый КВ‑сигнал приходит с антенны, усиливается первой лампой, затем выделяется регенеративным детектором и слышен в телефонах после НЧ‑усилителя.</p>
+      <div class="meter"><div id="meterBar" class="bar"></div></div>
+      <p class="note">Индикатор условный: показывает активность выбранного пути, а не реальные напряжения.</p>
+    </div>
+
+    <div class="panel">
+      <h2 id="sectionTitle">Общий принцип</h2>
+      <p id="sectionText">«Север» — компактная переносная КВ‑радиостанция трансиверного типа. На приёме она работает как схема 1‑V‑1: входной ВЧ‑каскад, регенеративный детектор, выходной НЧ‑каскад. На передаче — как телеграфный передатчик с задающим генератором и усилителем мощности.</p>
+    </div>
+
+    <div class="panel">
+      <div class="step-meta">
+        <h2 style="margin:0">Пошаговая анимация</h2>
+        <span id="stepBadge" class="step-badge">Шаг 1 / 4</span>
+      </div>
+      <div class="progress"><span id="stepProgress"></span></div>
+      <p id="stepTitle"><b>1. Трансиверный принцип</b></p>
+      <p id="stepText">Переключатель RX/TX перенаправляет общие узлы: некоторые лампы в одном режиме усиливают принятый сигнал, а в другом — генерируют или усиливают передаваемый.</p>
+      <div class="step-controls">
+        <button id="prevStepBtn">Предыдущий шаг</button>
+        <button id="nextStepBtn">Следующий шаг</button>
+        <button id="autoStepBtn">Авто‑шаги</button>
+      </div>
+      <p class="note">Шаги зависят от выбранной вкладки. На схеме активные узлы и линии подсвечиваются жёлтым.</p>
+    </div>
+
+    <div class="panel">
+      <h2 id="infoTitle">Подсказка по узлу</h2>
+      <p id="infoText">Нажимай на узлы схемы: антенна, переключатель, лампы, контуры, ключ, питание. Здесь появится подробное объяснение выбранного узла.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Мини‑справка: лампы и органы управления</h2>
+      <div class="ref-item"><b>V1 — 2К2М</b><span>Приём: входной ВЧ‑усилитель. Передача: задающий генератор несущей.</span></div>
+      <div class="ref-item"><b>V2 — 2К2М</b><span>Регенеративный детектор. Повышает чувствительность при помощи обратной связи и выделяет сигнал.</span></div>
+      <div class="ref-item"><b>V3 — №24 / СБ‑244</b><span>Приём: НЧ‑усилитель для телефонов. Передача: усилитель мощности.</span></div>
+      <div class="ref-item"><b>RX/TX</b><span>Главный переключатель рода работы: перестраивает внутренние связи станции.</span></div>
+      <div class="ref-item"><b>Ключ</b><span>Управляет телеграфной манипуляцией — включает и выключает несущую.</span></div>
+      <div class="ref-item"><b>LC / quartz</b><span>Определяет рабочую частоту передатчика.</span></div>
+      <div class="ref-item"><b>Антенный контур</b><span>Согласует выход передатчика и антенну.</span></div>
+      <div class="ref-item"><b>Батареи</b><span>Отдельные цепи накала и анодного питания питают ламповые каскады.</span></div>
+    </div>
+
+    <div class="panel">
+      <h2>Авто‑CQ</h2>
+      <p class="morse" id="morseText">CQ CQ DE SEVER</p>
+      <p class="note">Это визуальная имитация телеграфной работы узла. Передача в эфир без разрешения и настройки недопустима.</p>
+    </div>
+  </aside>
+</div>
+<div id="tooltip" class="tooltip"></div>
+
+<script>
+(() => {
+  const body = document.body;
+  const rxBtn = document.getElementById('rxBtn');
+  const txBtn = document.getElementById('txBtn');
+  const keyBtn = document.getElementById('keyBtn');
+  const autoBtn = document.getElementById('autoBtn');
+  const statusEl = document.getElementById('status');
+  const modeText = document.getElementById('modeText');
+  const meterBar = document.getElementById('meterBar');
+  const tooltip = document.getElementById('tooltip');
+  const infoTitle = document.getElementById('infoTitle');
+  const infoText = document.getElementById('infoText');
+  const sectionTitle = document.getElementById('sectionTitle');
+  const sectionText = document.getElementById('sectionText');
+  const stepBadge = document.getElementById('stepBadge');
+  const stepTitle = document.getElementById('stepTitle');
+  const stepText = document.getElementById('stepText');
+  const stepProgress = document.getElementById('stepProgress');
+  const prevStepBtn = document.getElementById('prevStepBtn');
+  const nextStepBtn = document.getElementById('nextStepBtn');
+  const autoStepBtn = document.getElementById('autoStepBtn');
+  const morseText = document.getElementById('morseText');
+
+  const tabButtons = {
+    overview: document.getElementById('tabOverview'),
+    rx: document.getElementById('tabRx'),
+    tx: document.getElementById('tabTx'),
+    power: document.getElementById('tabPower')
+  };
+
+  const sectionContent = {
+    overview: {
+      title: 'Общий принцип',
+      text: '«Север» — переносная КВ‑радиостанция трансиверного типа. Это значит, что часть узлов используется и на приёме, и на передаче. В учебной модели хорошо видно: переключатель RX/TX меняет направление сигнала, а лампы V1 и V3 получают разные роли в зависимости от выбранного режима.'
+    },
+    rx: {
+      title: 'Приём',
+      text: 'На приёме сигнал с антенны идёт через переключатель рода работы в лампу V1, затем поступает на регенеративный детектор V2. После выделения полезного сигнала V3 усиливает низкую частоту, и оператор слышит её в телефонах.'
+    },
+    tx: {
+      title: 'Передача',
+      text: 'На передаче телеграфный ключ манипулирует несущей. Частоту задаёт генераторный блок, V1 формирует ВЧ‑колебания, V3 усиливает мощность, а антенный контур согласует выход передатчика с антенной.'
+    },
+    power: {
+      title: 'Питание',
+      text: 'Батареи обеспечивают две важные функции: цепь накала разогревает катоды ламп, а анодное питание позволяет каскадам усиливать и генерировать сигнал. Без правильного питания ни приём, ни передача невозможны.'
+    }
+  };
+
+  const steps = {
+    overview: [
+      { title: '1. Трансиверный принцип', text: 'Переключатель RX/TX перенаправляет общие узлы: одни и те же лампы могут работать как каскады приёмника или как каскады передатчика.', nodes:['node-switch','node-v1','node-v3'] },
+      { title: '2. Приёмный тракт', text: 'В режиме приёма активен маршрут от антенны через V1 и V2 к выходу приёмника.', nodes:['node-antenna','node-v1','node-v2','node-headphones'], paths:['rxSeg1','rxSeg2','rxSeg3','rxSeg4'] },
+      { title: '3. Передающий тракт', text: 'В режиме передачи ключ запускает тракт: генератор → усилитель мощности → антенный контур → антенна.', nodes:['node-key','node-lc','node-v1','node-v3','node-ant-tune','node-antenna'], paths:['txSeg1','txSeg2','txSeg3','txSeg4','txSeg5'] },
+      { title: '4. Питание ламп', text: 'Батареи питают лампы через цепи накала и анодные цепи. Питание нужно и для усиления, и для генерации колебаний.', nodes:['node-power','node-v1','node-v2','node-v3'], paths:['pwrSeg1','pwrSeg2','pwrSeg3'] }
+    ],
+    rx: [
+      { title: '1. Антенна принимает сигнал', text: 'Антенна и противовес принимают слабое ВЧ‑напряжение из эфира и подают его к переключателю.', nodes:['node-antenna','node-switch'], paths:['rxSeg1'] },
+      { title: '2. V1 усиливает ВЧ', text: 'Первая лампа поднимает уровень сигнала, чтобы его было легче выделить и обработать дальше.', nodes:['node-switch','node-v1'], paths:['rxSeg2'] },
+      { title: '3. V2 выделяет сигнал', text: 'Регенеративный детектор усиливает чувствительность и выделяет полезный телеграфный сигнал.', nodes:['node-v2'], paths:['rxSeg3'] },
+      { title: '4. Выход в телефоны', text: 'После обработки V3 усиливает низкочастотный сигнал, и оператор слышит его в телефонах.', nodes:['node-v3','node-headphones'], paths:['rxSeg4','rxSeg5'] }
+    ],
+    tx: [
+      { title: '1. Ключ манипулирует передачей', text: 'Телеграфный ключ включает и выключает несущую: точки и тире Морзе получаются пачками ВЧ‑энергии.', nodes:['node-key'], paths:['txSeg1'] },
+      { title: '2. Формирование частоты', text: 'LC/кварцевый узел определяет рабочую частоту, а V1 формирует колебания задающего генератора.', nodes:['node-lc','node-v1'], paths:['txSeg1','txSeg4'] },
+      { title: '3. Усиление мощности', text: 'V3 поднимает мощность сигнала настолько, чтобы передать энергию в антенну.', nodes:['node-v3'], paths:['txSeg2'] },
+      { title: '4. Согласование и излучение', text: 'Антенный контур согласует нагрузку, после чего энергия уходит в антенну и излучается в эфир.', nodes:['node-ant-tune','node-antenna'], paths:['txSeg3','txSeg5'] }
+    ],
+    power: [
+      { title: '1. Источник питания', text: 'Батарейный отсек содержит источники для накала и анодных цепей — это энергетическая база всей станции.', nodes:['node-power'] , paths:['pwrSeg1','pwrSeg2','pwrSeg3']},
+      { title: '2. Питание приёмных каскадов', text: 'V1 и V2 получают накал и анодное напряжение, что позволяет усиливать и детектировать входной сигнал.', nodes:['node-power','node-v1','node-v2'], paths:['pwrSeg1','pwrSeg2'] },
+      { title: '3. Питание выходного каскада', text: 'V3 тоже питается от батарей — на приёме как НЧ‑усилитель, на передаче как усилитель мощности.', nodes:['node-power','node-v3'], paths:['pwrSeg3'] }
+    ]
+  };
+
+  const morse = {
+    'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---',
+    'K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':'.-.','S':'...','T':'-',
+    'U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..','1':'.----','2':'..---','3':'...--',
+    '4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.','0':'-----',' ':' '
+  };
+  const cwMessage = 'CQ CQ DE SEVER';
+  const cwUnit = 130;
+
+  const state = {
+    mode: 'rx',
+    activeTab: 'overview',
+    stepIndex: 0,
+    autoStep: false,
+    autoStepTimer: null,
+    autoCw: false,
+    autoCwTimer: null,
+    manualKeyTimer: null
+  };
+
+  function updateMeter(value){ meterBar.style.width = value; }
+
+  function setMode(mode){
+    state.mode = mode === 'tx' ? 'tx' : 'rx';
+    body.classList.remove('mode-rx','mode-tx');
+    body.classList.add(state.mode === 'tx' ? 'mode-tx' : 'mode-rx');
+    rxBtn.classList.toggle('active', state.mode === 'rx');
+    txBtn.classList.toggle('active', state.mode === 'tx');
+    if(state.mode === 'rx'){
+      statusEl.textContent = 'режим приёма';
+      statusEl.className = 'status rx';
+      modeText.textContent = 'Слабый КВ‑сигнал приходит с антенны, усиливается первой лампой, затем выделяется регенеративным детектором и слышен в телефонах после НЧ‑усилителя.';
+      body.classList.remove('key-down');
+      keyBtn.classList.remove('keyActive');
+      updateMeter('28%');
+    } else {
+      statusEl.textContent = 'режим передачи';
+      statusEl.className = 'status tx';
+      modeText.textContent = 'Телеграфный ключ включает несущую. Генератор формирует ВЧ‑колебания, усилитель мощности подаёт их в антенный контур и дальше в антенну.';
+      if(!body.classList.contains('key-down')) updateMeter('18%');
+    }
+  }
+
+  function keyDown(on){
+    if(on && state.mode !== 'tx') setMode('tx');
+    body.classList.toggle('key-down', !!on);
+    keyBtn.classList.toggle('keyActive', !!on);
+    updateMeter(state.mode === 'tx' ? (on ? '92%' : '18%') : '28%');
+  }
+
+  function stopAutoCw(removeButton = true){
+    state.autoCw = false;
+    if(state.autoCwTimer){ clearTimeout(state.autoCwTimer); state.autoCwTimer = null; }
+    if(state.manualKeyTimer){ clearTimeout(state.manualKeyTimer); state.manualKeyTimer = null; }
+    keyDown(false);
+    if(removeButton) autoBtn.classList.remove('keyActive');
+  }
+
+  function buildCwSequence(text){
+    const seq = [];
+    for(const ch of text.toUpperCase()){
+      const code = morse[ch] || '';
+      if(ch === ' '){ seq.push(['gap', cwUnit * 5]); continue; }
+      for(const sym of code){
+        seq.push(['down', sym === '.' ? cwUnit : cwUnit * 3]);
+        seq.push(['up', cwUnit]);
+      }
+      seq.push(['up', cwUnit * 2]);
+    }
+    return seq;
+  }
+
+  function playAutoCw(){
+    stopAutoCw(false);
+    setMode('tx');
+    state.autoCw = true;
+    autoBtn.classList.add('keyActive');
+    morseText.textContent = cwMessage;
+    const sequence = buildCwSequence(cwMessage);
+    let i = 0;
+    const step = () => {
+      if(!state.autoCw) return;
+      const [kind, duration] = sequence[i];
+      keyDown(kind === 'down');
+      i = (i + 1) % sequence.length;
+      state.autoCwTimer = setTimeout(step, duration);
+    };
+    step();
+  }
+
+  function pulseManualKey(){
+    stopAutoCw();
+    keyDown(true);
+    state.manualKeyTimer = setTimeout(() => keyDown(false), 220);
+  }
+
+  function clearStepFocus(){
+    document.querySelectorAll('.step-focus').forEach(el => el.classList.remove('step-focus'));
+  }
+
+  function applyStepFocus(step){
+    clearStepFocus();
+    (step.nodes || []).forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.classList.add('step-focus');
+    });
+    (step.paths || []).forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.classList.add('step-focus');
+    });
+  }
+
+  function tabMode(tab){
+    if(tab === 'tx') return 'tx';
+    return 'rx';
+  }
+
+  function renderStep(){
+    const list = steps[state.activeTab];
+    const step = list[state.stepIndex];
+    stepBadge.textContent = `Шаг ${state.stepIndex + 1} / ${list.length}`;
+    stepTitle.innerHTML = `<b>${step.title}</b>`;
+    stepText.textContent = step.text;
+    stepProgress.style.width = `${((state.stepIndex + 1) / list.length) * 100}%`;
+    applyStepFocus(step);
+    if(state.activeTab === 'tx' || (state.activeTab === 'overview' && state.stepIndex === 2)) {
+      setMode('tx');
+    } else {
+      setMode(tabMode(state.activeTab));
+    }
+  }
+
+  function stopAutoSteps(updateButton = true){
+    state.autoStep = false;
+    if(state.autoStepTimer){ clearTimeout(state.autoStepTimer); state.autoStepTimer = null; }
+    if(updateButton) autoStepBtn.classList.remove('keyActive');
+  }
+
+  function nextStep(delta = 1){
+    const list = steps[state.activeTab];
+    state.stepIndex = (state.stepIndex + delta + list.length) % list.length;
+    renderStep();
+  }
+
+  function startAutoSteps(){
+    stopAutoSteps(false);
+    state.autoStep = true;
+    autoStepBtn.classList.add('keyActive');
+    const loop = () => {
+      if(!state.autoStep) return;
+      nextStep(1);
+      state.autoStepTimer = setTimeout(loop, 2200);
+    };
+    state.autoStepTimer = setTimeout(loop, 2200);
+  }
+
+  function setTab(tab){
+    state.activeTab = tab;
+    state.stepIndex = 0;
+    Object.entries(tabButtons).forEach(([name, btn]) => {
+      btn.classList.toggle('active', name === tab);
+      btn.classList.toggle(name, true);
+    });
+    sectionTitle.textContent = sectionContent[tab].title;
+    sectionText.textContent = sectionContent[tab].text;
+    stopAutoSteps();
+    renderStep();
+  }
+
+  rxBtn.addEventListener('click', () => { stopAutoCw(); setMode('rx'); });
+  txBtn.addEventListener('click', () => { setMode('tx'); });
+
+  keyBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); stopAutoCw(); keyDown(true); });
+  keyBtn.addEventListener('pointerup', (e) => { e.preventDefault(); if(!state.autoCw) keyDown(false); });
+  keyBtn.addEventListener('pointerleave', () => { if(!state.autoCw) keyDown(false); });
+  keyBtn.addEventListener('click', (e) => { e.preventDefault(); if(!state.autoCw) pulseManualKey(); });
+
+  autoBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    if(state.autoCw){ stopAutoCw(); }
+    else { playAutoCw(); }
+  });
+
+  prevStepBtn.addEventListener('click', () => nextStep(-1));
+  nextStepBtn.addEventListener('click', () => nextStep(1));
+  autoStepBtn.addEventListener('click', () => state.autoStep ? stopAutoSteps() : startAutoSteps());
+
+  Object.entries(tabButtons).forEach(([name, btn]) => btn.addEventListener('click', () => setTab(name)));
+
+  window.addEventListener('keydown', (e) => {
+    if(e.code === 'Space' && !e.repeat){ e.preventDefault(); stopAutoCw(); keyDown(true); }
+    if(e.code === 'ArrowRight'){ e.preventDefault(); nextStep(1); }
+    if(e.code === 'ArrowLeft'){ e.preventDefault(); nextStep(-1); }
+  });
+  window.addEventListener('keyup', (e) => {
+    if(e.code === 'Space'){ e.preventDefault(); keyDown(false); }
+  });
+
+  function moveTooltip(evt){
+    if(!evt) return;
+    const pad = 14;
+    const w = Math.min(340, Math.max(260, window.innerWidth - 32));
+    let x = evt.clientX + 18;
+    let y = evt.clientY + 18;
+    if(x + w > window.innerWidth) x = evt.clientX - w - 18;
+    if(y + 170 > window.innerHeight) y = evt.clientY - 170;
+    tooltip.style.left = Math.max(pad, x) + 'px';
+    tooltip.style.top = Math.max(pad, y) + 'px';
+  }
+
+  document.querySelectorAll('.hotspot').forEach(el => {
+    const show = (evt) => {
+      const title = el.dataset.title || 'Узел';
+      const info = el.dataset.info || '';
+      infoTitle.textContent = title;
+      infoText.textContent = info;
+      tooltip.innerHTML = `<b>${title}</b><br>${info}`;
+      tooltip.style.display = 'block';
+      moveTooltip(evt);
+    };
+    const hide = () => { tooltip.style.display = 'none'; };
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('mousemove', moveTooltip);
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('click', show);
+  });
+
+  setTab('overview');
+})();
+</script>
+</body>
+</html>
