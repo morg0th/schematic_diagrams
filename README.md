@@ -1,3 +1,7 @@
+![Status](https://img.shields.io/badge/status-active-success)
+![License](https://img.shields.io/badge/license-educational-blue)
+![HTML](https://img.shields.io/badge/HTML5-SVG-orange)
+
 # Schematic Diagrams
 
 A collection of interactive and educational schematic diagrams covering radio engineering, electronics, telecommunications, and related technical topics.
